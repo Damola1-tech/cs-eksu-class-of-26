@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Class of '26 - Computer Science, EKSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #0B0E14;
+    --ink-2: #10141C;
+    --ink-3: #161B25;
+    --paper: #EDEAE1;
+    --amber: #D4A24C;
+    --amber-dim: #8C7238;
+    --green: #6FCF97;
+    --line: rgba(237,234,225,0.14);
+    --dim: rgba(237,234,225,0.55);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--ink); color:var(--paper);
+    font-family:'IBM Plex Mono', monospace;
+    overflow-x:hidden; -webkit-font-smoothing:antialiased;
+    padding-top:60px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important;}
+  }
+  a{color:var(--amber); text-decoration:none;}
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px solid var(--amber); outline-offset:3px;}
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px;}
+
+  /* MINI PLAYER */
+  .miniplayer{
+    position:fixed; top:0; left:0; right:0; height:60px; z-index:50;
+    display:flex; align-items:center; gap:12px; padding:0 16px;
+    background:rgba(11,14,20,0.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .mp-avatar{
+    width:36px; height:36px; border-radius:50%; flex-shrink:0;
+    background:radial-gradient(circle at 30% 30%, rgba(212,162,76,0.35), var(--ink-3));
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+  }
+  .eq{display:flex; align-items:flex-end; gap:2.5px; height:14px;}
+  .eq span{width:2.5px; background:var(--green); border-radius:2px; animation:eq 1.1s ease-in-out infinite; animation-play-state:paused; transform:scaleY(0.35);}
+  .eq span:nth-child(1){height:60%; animation-delay:0s;}
+  .eq span:nth-child(2){height:100%; animation-delay:0.2s;}
+  .eq span:nth-child(3){height:40%; animation-delay:0.4s;}
+  .eq span:nth-child(4){height:80%; animation-delay:0.6s;}
+  @keyframes eq{0%,100%{transform:scaleY(0.35);}50%{transform:scaleY(1);}}
+  .mp-avatar.playing .eq span{animation-play-state:running;}
+  .mp-meta{flex:1; min-width:0;}
+  .mp-title{font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .mp-artist{font-size:11px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .mp-btn{
+    flex-shrink:0; width:34px; height:34px; border-radius:50%;
+    border:1px solid var(--line); background:var(--ink-3); color:var(--paper);
+    font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:border-color 0.2s ease, transform 0.15s ease;
+  }
+  .mp-btn:hover{border-color:var(--amber); transform:scale(1.05);}
+  .mp-btn:active{transform:scale(0.94);}
+
+  /* HERO */
+  .hero{
+    min-height:calc(100svh - 60px); display:flex; flex-direction:column;
+    justify-content:center; padding:60px 24px; position:relative;
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(212,162,76,0.09), transparent 55%),
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+  }
+  .terminal{
+    max-width:640px; margin:0 auto; width:100%;
+    border:1px solid var(--line); border-radius:10px; background:var(--ink-2);
+    box-shadow:0 30px 80px -20px rgba(0,0,0,0.6); overflow:hidden; position:relative; z-index:1;
+  }
+  .terminal-bar{display:flex; gap:7px; padding:12px 16px; border-bottom:1px solid var(--line);}
+  .dot{width:10px; height:10px; border-radius:50%; background:rgba(237,234,225,0.18);}
+  .terminal-body{padding:26px 22px 30px; font-size:14px; line-height:1.85; min-height:230px;}
+  .prompt{color:var(--green);}
+  .out{color:var(--dim);}
+  .cursor{display:inline-block; width:8px; height:15px; background:var(--amber); vertical-align:-2px; animation:blink 1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  .typeline{white-space:pre-wrap; word-break:break-word;}
+  .hero-title{text-align:center; margin-top:56px; opacity:0; transform:translateY(14px); transition:opacity 1.1s ease, transform 1.1s ease;}
+  .hero-title.in{opacity:1; transform:translateY(0);}
+  .hero-eyebrow{font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:var(--amber); margin-bottom:16px;}
+  .hero-title h1{font-family:'Fraunces', serif; font-weight:500; font-style:italic; font-size:clamp(34px, 7vw, 58px); line-height:1.08;}
+  .hero-sub{margin-top:18px; color:var(--dim); font-size:14px; letter-spacing:0.03em;}
+  .scroll-hint{position:absolute; bottom:28px; left:50%; transform:translateX(-50%); font-size:11px; color:var(--dim); letter-spacing:0.15em; text-transform:uppercase; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .scroll-hint span{width:1px; height:26px; background:linear-gradient(180deg, var(--amber), transparent); animation:drop 1.8s ease-in-out infinite;}
+  @keyframes drop{0%{transform:scaleY(0); transform-origin:top;}50%{transform:scaleY(1); transform-origin:top;}100%{transform:scaleY(0); transform-origin:bottom;}}
+
+  .reveal{opacity:0; transform:translateY(22px); transition:opacity 0.9s ease, transform 0.9s ease;}
+  .reveal.in{opacity:1; transform:translateY(0);}
+  section{padding:100px 0;}
+  .label{font-size:12px; letter-spacing:0.2em; text-transform:uppercase; color:var(--amber-dim); margin-bottom:22px; display:flex; align-items:center; gap:10px;}
+  .label::before{content:""; color:var(--amber);}
+
+  /* MESSAGE */
+  .message p{font-family:'Fraunces', serif; font-weight:300; font-size:clamp(21px, 3.4vw, 28px); line-height:1.6; margin-bottom:28px;}
+  .message p:last-child{margin-bottom:0;}
+  .message .em{font-style:italic; color:var(--amber);}
+  .signoff{margin-top:46px; font-size:14px; color:var(--dim);}
+  .signoff .name{color:var(--paper); font-weight:600;}
+
+  /* LIVE STATS STRIP */
+  .stats-strip{
+    display:flex; gap:22px; flex-wrap:wrap; align-items:center;
+    border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin-bottom:36px;
+    background:var(--ink-2); font-size:12px; color:var(--dim);
+  }
+  .stat{display:flex; flex-direction:column; gap:3px;}
+  .stat b{font-family:'Fraunces', serif; font-size:19px; font-weight:600; color:var(--paper);}
+  .live-dot{width:7px; height:7px; border-radius:50%; background:var(--green); display:inline-block; margin-right:6px; animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+  /* HEATMAP */
+  .heatmap-wrap{margin-bottom:36px;}
+  .heatmap-label{font-size:11px; color:var(--dim); margin-bottom:10px;}
+  .heatmap{display:flex; flex-wrap:wrap; gap:3px; max-width:100%;}
+  .heat-cell{width:11px; height:11px; border-radius:2px; background:var(--ink-3); border:1px solid var(--line);}
+  .heat-cell[data-level="1"]{background:rgba(212,162,76,0.35); border-color:transparent;}
+  .heat-cell[data-level="2"]{background:rgba(212,162,76,0.65); border-color:transparent;}
+  .heat-cell[data-level="3"]{background:var(--amber); border-color:transparent;}
+
+  /* ADD A COMMIT */
+  .log-hint{color:var(--dim); font-size:14px; margin-bottom:32px; line-height:1.7;}
+  .add-commit{border:1px solid var(--line); border-radius:12px; padding:22px; background:var(--ink-2); margin-bottom:44px;}
+  .add-commit-hint{font-size:12px; color:var(--green); margin-bottom:16px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:7px;}
+  .field input, .field textarea{
+    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:8px;
+    padding:11px 13px; color:var(--paper); font-family:'IBM Plex Mono', monospace; font-size:14px; resize:vertical;
+  }
+  .field textarea{min-height:74px; line-height:1.6;}
+  .field input:focus, .field textarea:focus{border-color:var(--amber);}
+  .commit-btn{
+    width:100%; padding:13px; border-radius:8px; border:1px solid var(--amber-dim);
+    background:transparent; color:var(--amber); font-family:'IBM Plex Mono', monospace;
+    font-size:13px; letter-spacing:0.04em; cursor:pointer; transition:background 0.2s ease, color 0.2s ease;
+  }
+  .commit-btn:hover:not(:disabled){background:var(--amber); color:var(--ink);}
+  .commit-btn:disabled{opacity:0.5; cursor:default;}
+  .add-status{font-size:12px; color:var(--dim); margin-top:12px; min-height:16px;}
+  .add-status.ok{color:var(--green);}
+  .add-status.err{color:#E4776F;}
+
+  /* COMMIT LOG */
+  #commitList{margin-bottom:20px;}
+  .commit{border-left:2px solid var(--line); padding:0 0 26px 24px; margin-left:6px; position:relative; opacity:0; transform:translateY(10px); animation:commitIn 0.6s ease forwards;}
+  @keyframes commitIn{to{opacity:1; transform:translateY(0);}}
+  .commit::before{content:""; position:absolute; left:-6px; top:4px; width:10px; height:10px; border-radius:50%; background:var(--ink); border:2px solid var(--amber);}
+  .commit:last-child{padding-bottom:0;}
+  .commit-hash{font-size:12px; color:var(--amber-dim); margin-bottom:6px;}
+  .commit-name{font-family:'Fraunces', serif; font-weight:600; font-size:19px; margin-bottom:8px;}
+  .commit-msg{font-size:14px; line-height:1.75; color:var(--dim); word-break:break-word; margin-bottom:12px;}
+  .reactions{display:flex; gap:8px;}
+  .react-btn:disabled{opacity:0.7; cursor:default;}
+  .react-btn{
+    display:flex; align-items:center; gap:5px; font-size:12px; color:var(--dim);
+    background:var(--ink-2); border:1px solid var(--line); border-radius:20px; padding:5px 11px;
+    cursor:pointer; font-family:'IBM Plex Mono', monospace; transition:border-color 0.2s ease, color 0.2s ease;
+  }
+  .react-btn:hover{border-color:var(--amber); color:var(--paper);}
+  .react-btn.mine{border-color:var(--amber); color:var(--amber);}
+  .log-empty{font-size:13px; color:var(--dim); font-style:italic; padding:8px 0 8px 30px;}
+  .log-loading{font-size:13px; color:var(--dim); padding:8px 0 8px 30px;}
+  .refresh-btn{display:block; margin:8px 0 0 30px; background:none; border:none; color:var(--amber-dim); font-family:'IBM Plex Mono', monospace; font-size:12px; cursor:pointer; text-decoration:underline; text-underline-offset:3px;}
+  .refresh-btn:hover{color:var(--amber);}
+
+  /* SONG */
+  .song-card{border:1px solid var(--line); border-radius:14px; padding:28px; background:linear-gradient(160deg, rgba(212,162,76,0.06), transparent 60%);}
+  .song-meta{display:flex; align-items:center; gap:14px; margin-bottom:20px;}
+  .song-title{font-family:'Fraunces', serif; font-weight:600; font-size:18px;}
+  .song-artist{font-size:13px; color:var(--dim); margin-top:2px;}
+  .video-frame{position:relative; width:100%; padding-top:56.25%; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:var(--ink-2);}
+  .video-frame iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+  .song-note{font-size:13px; color:var(--dim); margin-top:16px; line-height:1.7;}
+
+  /* PHOTO WALL */
+  .photo-upload{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    border:1px dashed var(--line); border-radius:12px; padding:22px;
+    color:var(--dim); font-size:13px; cursor:pointer; margin-bottom:32px;
+    transition:border-color 0.2s ease, color 0.2s ease;
+  }
+  .photo-upload:hover{border-color:var(--amber); color:var(--amber);}
+  .photo-upload input{display:none;}
+  .photo-wall{display:flex; flex-wrap:wrap; gap:20px; justify-content:center;}
+  .polaroid{
+    background:var(--paper); padding:10px 10px 26px; border-radius:3px;
+    box-shadow:0 14px 30px -10px rgba(0,0,0,0.55); width:150px;
+  }
+  .polaroid:nth-child(3n){transform:rotate(-3deg);}
+  .polaroid:nth-child(3n+1){transform:rotate(2deg);}
+  .polaroid:nth-child(3n+2){transform:rotate(-1.5deg);}
+  .polaroid img{width:100%; height:130px; object-fit:cover; border-radius:1px; display:block; background:var(--ink-3);}
+  .photo-empty{font-size:13px; color:var(--dim); font-style:italic; text-align:center; width:100%;}
+
+  /* FOOTER */
+  footer{padding:100px 0 130px; text-align:center; position:relative;}
+  .final-commit{font-size:13px; color:var(--dim); line-height:2; margin-bottom:14px;}
+  .final-commit .prompt{display:block;}
+  footer h2{font-family:'Fraunces', serif; font-style:italic; font-weight:500; font-size:clamp(22px, 4vw, 30px); margin-top:28px;}
+  footer .dept{margin-top:14px; font-size:12px; letter-spacing:0.15em; text-transform:uppercase; color:var(--amber-dim);}
+
+  .share-fab{
+    position:fixed; right:20px; bottom:24px; z-index:40; width:52px; height:52px; border-radius:50%;
+    background:linear-gradient(150deg, var(--amber), var(--amber-dim)); border:none; color:var(--ink);
+    display:flex; align-items:center; justify-content:center; box-shadow:0 14px 34px -8px rgba(212,162,76,0.55);
+    cursor:pointer; transition:transform 0.15s ease;
+  }
+  .share-fab:active{transform:scale(0.92);}
+  .share-toast{
+    position:fixed; left:50%; bottom:88px; transform:translateX(-50%) translateY(10px);
+    background:var(--ink-3); border:1px solid var(--line); color:var(--paper);
+    font-size:12px; padding:9px 16px; border-radius:20px; opacity:0; pointer-events:none;
+    transition:opacity 0.25s ease, transform 0.25s ease; z-index:41; white-space:nowrap;
+  }
+  .share-toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="miniplayer">
+  <div class="mp-avatar" id="mpAvatar"><div class="eq"><span></span><span></span><span></span><span></span></div></div>
+  <div class="mp-meta">
+    <div class="mp-title">The Book of Love</div>
+    <div class="mp-artist">Peter Gabriel</div>
+  </div>
+  <button class="mp-btn" id="mpBtn" aria-label="Play song">▶</button>
+</div>
+
+<section class="hero">
+  <div class="terminal">
+    <div class="terminal-bar"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <div class="terminal-body" id="termBody"></div>
+  </div>
+  <div class="hero-title" id="heroTitle">
+    <div class="hero-eyebrow">Computer Science &middot; EKSU</div>
+    <h1>Class of '26</h1>
+    <div class="hero-sub">a send-off, from one of your own</div>
+  </div>
+  <div class="scroll-hint"><span></span>scroll</div>
+</section>
+
+<div class="wrap">
+
+  <section class="message">
+    <div class="label reveal">from Damola</div>
+    <div class="reveal">
+      <p>Four years ago, I walked into EKSU not knowing a single face in this department. I'm walking out knowing all of you, and that's the part nobody really prepares you for. Not the exams, not the lecturers, not the projects that broke at 2am. It's <span class="em">everything in between</span> that you end up remembering.</p>
+
+<p>The 7am classes we showed up to looking like we'd been fighting for our lives since midnight. The notebooks of code we didn't understand, the borrowed handouts, the endless <span class="em">"guy, help me with this one" "abeg send the note" "who's got the past questions?"</span></p>
+
+<p>And somehow, we still came. Sleepless nights, borrowed laptops, and enough faith to try again.</p>
+
+<p>Then there were the results. Those three colours on the portal could change your entire mood before the page even finished loading. We failed things. We passed things. But we kept moving, and somewhere in all that complaining, we built friendships, the kind you could call at 2am for a note, a past question, or just someone to say <span class="em">"guy, I'm tired too."</span> We debugged code together. I think we did more than that, we helped each other survive a season none of us fully understood while we were living through it.</p>
+
+<p>I'm signing out this month. I won't pretend every moment was beautiful, it wasn't. But somehow, I made it through. <span class="em">We did.</span></p>
+
+<p>So before I leave, I want to leave something behind that isn't just <span class="em">my</span> story. Add your name. Drop a picture. Tell us something you remember. Let the log fill up, because someday, when we're all somewhere different, I want us to have somewhere to come back to and remember that before the jobs and the titles and whatever life becomes, <span class="em">we were just a bunch of students trying to make it through EKSU.</span></p>
+
+<p>And somehow, we did.</p>
+    </div>
+    <div class="signoff reveal">
+      &mdash; <span class="name">Lawal Oyindamola David (Damola)</span><br>
+      Computer Science, EKSU &middot; Class of 2026
+    </div>
+  </section>
+
+  <section class="shoutouts">
+    <div class="label reveal">the log</div>
+    <p class="log-hint reveal">every classmate who visits can add a line, react to others, and drop a photo. it's permanent and it's ours.</p>
+
+    <div class="stats-strip reveal" id="statsStrip">
+      <div class="stat"><span><span class="live-dot"></span>live</span></div>
+      <div class="stat"><b id="statCommits">—</b><span>commits</span></div>
+      <div class="stat"><b id="statContrib">—</b><span>contributors</span></div>
+      <div class="stat"><b id="statLast">—</b><span>last commit</span></div>
+    </div>
+
+    <div class="heatmap-wrap reveal">
+      <div class="heatmap-label">activity, last 70 days</div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+
+    <div class="add-commit reveal">
+      <div class="add-commit-hint">$ git commit -m "your message"</div>
+      <div class="field">
+        <label for="nameInput">your name</label>
+        <input id="nameInput" type="text" maxlength="60" placeholder="e.g. Ajayi Daniel" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="msgInput">what do you want to say</label>
+        <textarea id="msgInput" maxlength="280" placeholder="say something to the department..."></textarea>
+      </div>
+      <button class="commit-btn" id="submitBtn">commit →</button>
+      <div class="add-status" id="addStatus"></div>
+    </div>
+
+    <div id="commitList"><div class="log-loading">loading the log…</div></div>
+    <button class="refresh-btn" id="refreshBtn">↻ refresh log</button>
+  </section>
+
+  <section class="song">
+    <div class="label reveal">now playing</div>
+    <div class="song-card reveal">
+      <div class="song-meta">
+        <div class="eq" id="cardEq"><span></span><span></span><span></span><span></span></div>
+        <div>
+          <div class="song-title">The Book of Love</div>
+          <div class="song-artist">Peter Gabriel</div>
+        </div>
+      </div>
+      <audio id="songAudio" preload="metadata" src="https://xgiinmcdvynvedypwarw.supabase.co/storage/v1/object/public/audio/Book%20Of%20Love%20By%20Peter%20Gabriel.mp3"></audio>
+      <p class="song-note">it felt like the right one to close with.</p>
+      </div>
+  </section>
+
+  <section class="photos">
+    <div class="label reveal">the wall</div>
+    <p class="log-hint reveal">drop a photo, a screenshot, a group pic, a random memory. no names attached, just the wall.</p>
+    <label class="photo-upload reveal" for="photoInput">
+      <span id="uploadLabel">＋ add a photo</span>
+      <input type="file" id="photoInput" accept="image/*">
+    </label>
+    <div class="photo-wall reveal" id="photoWall"><div class="photo-empty">loading photos…</div></div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="final-commit reveal">
+      <span class="prompt">$ git log --oneline -1</span>
+      <span>a1b2c3d thank you, CS EKSU. See you again</span>
+    </div>
+    <h2 class="reveal">Not goodbye. Just log out.</h2>
+    <div class="dept reveal">Computer Science &middot; EKSU &middot; Class of 2026</div>
+  </div>
+</footer>
+
+<button class="share-fab" id="shareBtn" aria-label="Share this page">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+</button>
+<div class="share-toast" id="shareToast">link copied</div>
+
+<script>
+  /* ===== CONFIG ===== */
+  const SUPABASE_URL = 'https://xgiinmcdvynvedypwarw.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnaWlubWNkdnludmVkeXB3YXJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMjQyMzMsImV4cCI6MjA4OTgwMDIzM30.1jqosdFYPbDne9yPskQehmkva3j0TGLxtMeVDgWSZ50';
+  const REST = SUPABASE_URL + '/rest/v1';
+  const STORAGE = SUPABASE_URL + '/storage/v1';
+  function sbHeaders(extra){
+    return Object.assign({ 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }, extra || {});
+  }
+
+  /* ===== terminal boot sequence ===== */
+  const lines = [
+    { text: "$ whoami", cls: "prompt", pause: 350 },
+    { text: "damola — final year, computer science", cls: "out", pause: 500 },
+    { text: "$ cd ~/eksu/class-of-26", cls: "prompt", pause: 350 },
+    { text: "$ compile --years 4 --memories all", cls: "prompt", pause: 350 },
+    { text: "compiling................ done", cls: "out", pause: 650 },
+  ];
+  const termBody = document.getElementById('termBody');
+  const heroTitle = document.getElementById('heroTitle');
+  let li = 0;
+  function typeLine(cb){
+    if(li >= lines.length){ cb(); return; }
+    const {text, cls, pause} = lines[li];
+    const div = document.createElement('div');
+    div.className = 'typeline ' + cls;
+    termBody.appendChild(div);
+    let ci = 0;
+    const speed = cls === 'prompt' ? 34 : 14;
+    function step(){
+      if(ci <= text.length){ div.textContent = text.slice(0, ci); ci++; setTimeout(step, speed); }
+      else { li++; setTimeout(()=>typeLine(cb), pause); }
+    }
+    step();
+  }
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  termBody.appendChild(cursor);
+  setTimeout(()=>{ typeLine(()=>{ cursor.remove(); heroTitle.classList.add('in'); }); }, 400);
+
+  /* ===== scroll reveal ===== */
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+    /* ===== song: plain HTML5 audio, no external API needed ===== */
+  const mpAvatar = document.getElementById('mpAvatar');
+  const mpBtn = document.getElementById('mpBtn');
+  const cardEq = document.getElementById('cardEq');
+  const songAudio = document.getElementById('songAudio');
+  let playerState = 'paused';
+
+  function updatePlayerUI(){
+    const playing = playerState === 'playing';
+    mpAvatar.classList.toggle('playing', playing);
+    cardEq.classList.toggle('playing', playing);
+    mpBtn.textContent = playing ? '❚❚' : '▶';
+  }
+
+  songAudio.addEventListener('canplay', function(){
+    mpBtn.disabled = false;
+  }, { once: true });
+  if(songAudio.readyState >= 2){ mpBtn.disabled = false; }
+
+  songAudio.addEventListener('play', function(){ playerState = 'playing'; updatePlayerUI(); });
+  songAudio.addEventListener('pause', function(){ playerState = 'paused'; updatePlayerUI(); });
+  songAudio.addEventListener('ended', function(){ playerState = 'paused'; updatePlayerUI(); });
+
+  mpBtn.addEventListener('click', function(){
+    if(playerState === 'playing'){ songAudio.pause(); }
+    else { songAudio.play().catch(function(err){ console.error('play failed', err); }); }
+  });
+
+  /* ===== shoutout log ===== */
+  const commitList = document.getElementById('commitList');
+  const nameInput = document.getElementById('nameInput');
+  const msgInput = document.getElementById('msgInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const addStatus = document.getElementById('addStatus');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const statCommits = document.getElementById('statCommits');
+  const statContrib = document.getElementById('statContrib');
+  const statLast = document.getElementById('statLast');
+  const heatmapEl = document.getElementById('heatmap');
+
+  let reactionCounts = {}; // { shoutoutId: { emoji: count } }
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+  function timeAgo(dateStr){
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if(m < 1) return 'just now';
+    if(m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if(h < 24) return h + 'h ago';
+    const d = Math.floor(h / 24);
+    return d + 'd ago';
+  }
+
+  function renderStats(items){
+    statCommits.textContent = items.length;
+    const names = new Set(items.map(i => i.name.trim().toLowerCase()));
+    statContrib.textContent = names.size;
+    statLast.textContent = items.length ? timeAgo(items[items.length - 1].created_at) : '—';
+  }
+
+  function renderHeatmap(items){
+    const days = 70;
+    const counts = {};
+    items.forEach(function(i){
+      const day = new Date(i.created_at).toISOString().slice(0, 10);
+      counts[day] = (counts[day] || 0) + 1;
+    });
+    let html = '';
+    const today = new Date();
+    for(let i = days - 1; i >= 0; i--){
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const c = counts[key] || 0;
+      const level = c === 0 ? 0 : c === 1 ? 1 : c <= 3 ? 2 : 3;
+      html += '<div class="heat-cell" data-level="' + level + '" title="' + key + ': ' + c + ' commit(s)"></div>';
+    }
+    heatmapEl.innerHTML = html;
+  }
+
+  function reactionsRowHtml(shoutoutId){
+    const counts = reactionCounts[shoutoutId] || {};
+    const emojis = ['👍', '❤️'];
+    return '<div class="reactions">' + emojis.map(function(em){
+      const n = counts[em] || 0;
+      return '<button class="react-btn" data-id="' + shoutoutId + '" data-emoji="' + em + '">' + em + ' <span>' + n + '</span></button>';
+    }).join('') + '</div>';
+  }
+
+  function renderCommits(items){
+    if(!items.length){
+      commitList.innerHTML = '<div class="log-empty">no commits yet. be the first to add yours above.</div>';
+      return;
+    }
+    commitList.innerHTML = items.map(function(item, i){
+      const hash = '#' + String(i + 1).padStart(4, '0');
+      return '<div class="commit" style="animation-delay:' + Math.min(i * 40, 400) + 'ms">' +
+        '<div class="commit-hash">' + hash + ' &middot; ' + timeAgo(item.created_at) + '</div>' +
+        '<div class="commit-name">' + escapeHtml(item.name) + '</div>' +
+        '<div class="commit-msg">' + escapeHtml(item.message) + '</div>' +
+        reactionsRowHtml(item.id) +
+      '</div>';
+    }).join('');
+    attachReactionHandlers();
+  }
+
+  function attachReactionHandlers(){
+  commitList.querySelectorAll('.react-btn').forEach(function(btn){
+    const id = btn.getAttribute('data-id');
+    const emoji = btn.getAttribute('data-emoji');
+    const key = 'reacted:' + id + ':' + emoji;
+    if(localStorage.getItem(key)){
+      btn.classList.add('mine');
+      btn.disabled = true;
+    }
+    btn.addEventListener('click', async function(){
+      if(localStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
+      reactionCounts[id] = reactionCounts[id] || {};
+      reactionCounts[id][emoji] = (reactionCounts[id][emoji] || 0) + 1;
+      btn.classList.add('mine');
+      btn.disabled = true;
+      const span = btn.querySelector('span');
+      span.textContent = reactionCounts[id][emoji];
+      try{
+        await fetch(REST + '/reactions', {
+          method: 'POST',
+          headers: sbHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ shoutout_id: id, emoji: emoji })
+        });
+      }catch(err){ /* optimistic UI already updated; silent fail is fine here */ }
+    });
+  });
+}
+
+  async function loadReactionCounts(){
+    try{
+      const res = await fetch(REST + '/reactions?select=shoutout_id,emoji', { headers: sbHeaders() });
+      if(!res.ok) return;
+      const rows = await res.json();
+      const counts = {};
+      rows.forEach(function(r){
+        counts[r.shoutout_id] = counts[r.shoutout_id] || {};
+        counts[r.shoutout_id][r.emoji] = (counts[r.shoutout_id][r.emoji] || 0) + 1;
+      });
+      reactionCounts = counts;
+    }catch(err){ /* leave counts as-is */ }
+  }
+
+  async function loadShoutouts(){
+    try{
+      const res = await fetch(REST + '/shoutouts?select=*&order=created_at.asc', { headers: sbHeaders() });
+      if(!res.ok) throw new Error('fetch failed');
+      const items = await res.json();
+      await loadReactionCounts();
+      renderCommits(items);
+      renderStats(items);
+      renderHeatmap(items);
+    }catch(err){
+      commitList.innerHTML = '<div class="log-empty">couldn\'t load the log right now. try refresh.</div>';
+    }
+  }
+
+  async function submitShoutout(){
+    const name = nameInput.value.trim();
+    const message = msgInput.value.trim();
+    if(!name || !message){
+      addStatus.textContent = 'add your name and a message first.';
+      addStatus.className = 'add-status err';
+      return;
+    }
+    submitBtn.disabled = true;
+    addStatus.textContent = 'committing…';
+    addStatus.className = 'add-status';
+    try{
+      const res = await fetch(REST + '/shoutouts', {
+        method: 'POST',
+        headers: sbHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+        body: JSON.stringify({ name: name, message: message })
+      });
+      if(!res.ok) throw new Error('insert failed');
+      nameInput.value = '';
+      msgInput.value = '';
+      addStatus.textContent = 'added to the log ✓';
+      addStatus.className = 'add-status ok';
+      loadShoutouts();
+    }catch(err){
+      addStatus.textContent = "couldn't save that, check your connection and try again.";
+      addStatus.className = 'add-status err';
+    }finally{
+      submitBtn.disabled = false;
+    }
+  }
+
+  submitBtn.addEventListener('click', submitShoutout);
+  refreshBtn.addEventListener('click', loadShoutouts);
+  loadShoutouts();
+
+  /* ===== photo wall ===== */
+  const photoInput = document.getElementById('photoInput');
+  const photoWall = document.getElementById('photoWall');
+  const uploadLabel = document.getElementById('uploadLabel');
+
+  function renderPhotos(items){
+    if(!items.length){
+      photoWall.innerHTML = '<div class="photo-empty">no photos yet, add the first one above.</div>';
+      return;
+    }
+    photoWall.innerHTML = items.map(function(p){
+      return '<div class="polaroid"><img src="' + p.url + '" alt="class photo" loading="lazy"></div>';
+    }).join('');
+  }
+
+  async function loadPhotos(){
+    try{
+      const res = await fetch(REST + '/photos?select=*&order=created_at.asc', { headers: sbHeaders() });
+      if(!res.ok) throw new Error('fetch failed');
+      renderPhotos(await res.json());
+    }catch(err){
+      photoWall.innerHTML = '<div class="photo-empty">couldn\'t load photos right now.</div>';
+    }
+  }
+
+  photoInput.addEventListener('change', async function(){
+    const file = photoInput.files[0];
+    if(!file) return;
+    uploadLabel.textContent = 'uploading…';
+    try{
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const filename = 'photo-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      const uploadRes = await fetch(STORAGE + '/object/photos/' + filename, {
+        method: 'POST',
+        headers: sbHeaders({ 'Content-Type': file.type || 'image/jpeg' }),
+        body: file
+      });
+      if(!uploadRes.ok) throw new Error('upload failed');
+      const publicUrl = STORAGE + '/object/public/photos/' + filename;
+      const insertRes = await fetch(REST + '/photos', {
+        method: 'POST',
+        headers: sbHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ url: publicUrl })
+      });
+      if(!insertRes.ok) throw new Error('record failed');
+      uploadLabel.textContent = '＋ add a photo';
+      photoInput.value = '';
+      loadPhotos();
+    }catch(err){
+      uploadLabel.textContent = "upload failed, tap to try again";
+      setTimeout(()=>{ uploadLabel.textContent = '＋ add a photo'; }, 2500);
+    }
+  });
+
+  loadPhotos();
+
+  /* ===== share ===== */
+  const shareBtn = document.getElementById('shareBtn');
+  const shareToast = document.getElementById('shareToast');
+  function toast(msg){
+    shareToast.textContent = msg;
+    shareToast.classList.add('show');
+    setTimeout(function(){ shareToast.classList.remove('show'); }, 1800);
+  }
+  shareBtn.addEventListener('click', async function(){
+    const url = window.location.href;
+    const shareData = { title: "Class of '26 - Computer Science, EKSU", text: 'add your name to the log', url: url };
+    try{
+      if(navigator.share){ await navigator.share(shareData); }
+      else { await navigator.clipboard.writeText(url); toast('link copied'); }
+    }catch(err){
+      try{ await navigator.clipboard.writeText(url); toast('link copied'); }
+      catch(e2){ toast('copy failed, copy the URL manually'); }
+    }
+  });
+</script>
+
+</body>
+</html>
